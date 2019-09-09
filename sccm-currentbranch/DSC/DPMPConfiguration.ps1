@@ -9,13 +9,15 @@
         [Parameter(Mandatory)]
         [String]$DPMPName,
         [Parameter(Mandatory)]
+        [String]$ClientName,
+        [Parameter(Mandatory)]
         [String]$PSName,
         [Parameter(Mandatory)]
         [String]$DNSIPAddress,
         [Parameter(Mandatory)]
         [System.Management.Automation.PSCredential]$Admincreds
     )
-    
+
     Import-DscResource -ModuleName TemplateHelpDSC
 
     $LogFolder = "TempLog"
@@ -62,7 +64,6 @@
             DCName = $DCName
             DependsOn = "[SetDNS]DnsServerAddress"
         }
-        
 
         JoinDomain JoinDomain
         {

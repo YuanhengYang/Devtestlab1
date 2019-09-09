@@ -26,7 +26,6 @@ $CMINIPath = "c:\$CM\Standalone.ini"
 $cmini = @'
 [Identification]
 Action=InstallPrimarySite
-Preview=1
 
 [Options]
 ProductID=EVAL
@@ -60,7 +59,6 @@ ProxyPort=
 SysCenterId=
 
 [HierarchyExpansionOption]
-
 '@
 $inst = (get-itemproperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server').InstalledInstances[0]
 $p = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL').$inst

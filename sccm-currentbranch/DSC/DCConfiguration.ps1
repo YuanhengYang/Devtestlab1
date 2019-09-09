@@ -9,6 +9,8 @@
         [Parameter(Mandatory)]
         [String]$DPMPName,
         [Parameter(Mandatory)]
+        [String]$ClientName,
+        [Parameter(Mandatory)]
         [String]$PSName,
         [Parameter(Mandatory)]
         [String]$DNSIPAddress,
@@ -20,10 +22,11 @@
 
     $LogFolder = "TempLog"
     $LogPath = "c:\$LogFolder"
-    $CM = "CMTP"
+    $CM = "CMCB"
     $DName = $DomainName.Split(".")[0]
     $PSComputerAccount = "$DName\$PSName$"
     $DPMPComputerAccount = "$DName\$DPMPName$"
+    $ClientComputerAccount = "$DName\$ClientName$"
 
     [System.Management.Automation.PSCredential]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($Admincreds.UserName)", $Admincreds.Password)
 
@@ -41,14 +44,14 @@
             InitialSize = '8192'
             MaximumSize = '8192'
         }
-
+        
         InstallFeatureForSCCM InstallFeature
         {
             Name = 'DC'
             Role = 'DC'
             DependsOn = "[SetCustomPagingFile]PagingSettings"
         }
-        
+
         SetupDomain FirstDS
         {
             DomainFullName = $DomainName
@@ -56,18 +59,31 @@
             DependsOn = "[InstallFeatureForSCCM]InstallFeature"
         }
 
+        InstallCA InstallCA
+        {
+            HashAlgorithm = "SHA256"
+            DependsOn = "[SetupDomain]FirstDS"
+        }
+
         VerifyComputerJoinDomain WaitForPS
         {
             ComputerName = $PSName
             Ensure = "Present"
-            DependsOn = "[SetupDomain]FirstDS"
+            DependsOn = "[InstallCA]InstallCA"
         }
 
         VerifyComputerJoinDomain WaitForDPMP
         {
             ComputerName = $DPMPName
             Ensure = "Present"
-            DependsOn = "[SetupDomain]FirstDS"
+            DependsOn = "[InstallCA]InstallCA"
+        }
+
+        VerifyComputerJoinDomain WaitForClient
+        {
+            ComputerName = $ClientName
+            Ensure = "Present"
+            DependsOn = "[InstallCA]InstallCA"
         }
 
         File ShareFolder
@@ -75,14 +91,14 @@
             DestinationPath = $LogPath     
             Type = 'Directory'            
             Ensure = 'Present'
-            DependsOn = @("[VerifyComputerJoinDomain]WaitForPS","[VerifyComputerJoinDomain]WaitForDPMP")
+            DependsOn = @("[VerifyComputerJoinDomain]WaitForPS","[VerifyComputerJoinDomain]WaitForDPMP","[VerifyComputerJoinDomain]WaitForClient")
         }
 
         FileReadAccessShare DomainSMBShare
         {
             Name   = $LogFolder
             Path =  $LogPath
-            Account = $PSComputerAccount,$DPMPComputerAccount
+            Account = $PSComputerAccount,$DPMPComputerAccount,$ClientComputerAccount
             DependsOn = "[File]ShareFolder"
         }
 
@@ -101,6 +117,16 @@
             Role = "DC"
             LogPath = $LogPath
             WriteNode = "DPMPJoinDomain"
+            Status = "Passed"
+            Ensure = "Present"
+            DependsOn = "[FileReadAccessShare]DomainSMBShare"
+        }
+
+        WriteConfigurationFile WriteClientJoinDomain
+        {
+            Role = "DC"
+            LogPath = $LogPath
+            WriteNode = "ClientJoinDomain"
             Status = "Passed"
             Ensure = "Present"
             DependsOn = "[FileReadAccessShare]DomainSMBShare"

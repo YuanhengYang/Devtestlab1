@@ -528,7 +528,7 @@ class DownloadSCCM
         $cmsourcepath = "c:\$_CM"
 
         Write-Verbose "Downloading SCCM installation source..."
-        $cmurl = "https://go.microsoft.com/fwlink/?linkid=2077212&clcid=0x409"
+        $cmurl = "https://go.microsoft.com/fwlink/?linkid=2093192"
         Invoke-WebRequest -Uri $cmurl -OutFile $cmpath
         if(!(Test-Path $cmsourcepath))
         {
@@ -928,15 +928,15 @@ class RegisterTaskScheduler
     [DscProperty(key)]
     [string] $TaskName
 
-	[DscProperty(Mandatory)]
+    [DscProperty(Mandatory)]
     [string] $ScriptName
 
     [DscProperty(Mandatory)]
     [string] $ScriptPath
-	
-	[DscProperty(Mandatory)]
+    
+    [DscProperty(Mandatory)]
     [string] $ScriptArgument
-	
+    
     [DscProperty(Mandatory)]
     [Ensure] $Ensure
 
@@ -961,35 +961,35 @@ class RegisterTaskScheduler
         Copy-item -Force -Recurse $sourceDirctory -Destination $destDirctory
 
         $_TaskName = $this.TaskName
-		$TaskDescription = "Azure template task"
-		$TaskCommand = "c:\windows\system32\WindowsPowerShell\v1.0\powershell.exe"
-		$TaskScript = "$ProvisionToolPath\$_ScriptName"
+        $TaskDescription = "Azure template task"
+        $TaskCommand = "c:\windows\system32\WindowsPowerShell\v1.0\powershell.exe"
+        $TaskScript = "$ProvisionToolPath\$_ScriptName"
 
         Write-Verbose "Task script full path is : $TaskScript "
 
-		$TaskArg = "-WindowStyle Hidden -NonInteractive -Executionpolicy unrestricted -file $TaskScript $_ScriptArgument"
+        $TaskArg = "-WindowStyle Hidden -NonInteractive -Executionpolicy unrestricted -file $TaskScript $_ScriptArgument"
 
         Write-Verbose "command is : $TaskArg"
 
-		$TaskStartTime = [datetime]::Now.AddMinutes(5)
-		$service = new-object -ComObject("Schedule.Service")
-		$service.Connect()
-		$rootFolder = $service.GetFolder("\")
-		$TaskDefinition = $service.NewTask(0)
-		$TaskDefinition.RegistrationInfo.Description = "$TaskDescription"
-		$TaskDefinition.Settings.Enabled = $true
-		$TaskDefinition.Settings.AllowDemandStart = $true
-		$triggers = $TaskDefinition.Triggers
-		#http://msdn.microsoft.com/en-us/library/windows/desktop/aa383915(v=vs.85).aspx
-		$trigger = $triggers.Create(1)
-		$trigger.StartBoundary = $TaskStartTime.ToString("yyyy-MM-dd'T'HH:mm:ss")
-		$trigger.Enabled = $true
-		# http://msdn.microsoft.com/en-us/library/windows/desktop/aa381841(v=vs.85).aspx
-		$Action = $TaskDefinition.Actions.Create(0)
-		$action.Path = "$TaskCommand"
-		$action.Arguments = "$TaskArg"
-		#http://msdn.microsoft.com/en-us/library/windows/desktop/aa381365(v=vs.85).aspx
-		$rootFolder.RegisterTaskDefinition("$_TaskName",$TaskDefinition,6,"System",$null,5)
+        $TaskStartTime = [datetime]::Now.AddMinutes(5)
+        $service = new-object -ComObject("Schedule.Service")
+        $service.Connect()
+        $rootFolder = $service.GetFolder("\")
+        $TaskDefinition = $service.NewTask(0)
+        $TaskDefinition.RegistrationInfo.Description = "$TaskDescription"
+        $TaskDefinition.Settings.Enabled = $true
+        $TaskDefinition.Settings.AllowDemandStart = $true
+        $triggers = $TaskDefinition.Triggers
+        #http://msdn.microsoft.com/en-us/library/windows/desktop/aa383915(v=vs.85).aspx
+        $trigger = $triggers.Create(1)
+        $trigger.StartBoundary = $TaskStartTime.ToString("yyyy-MM-dd'T'HH:mm:ss")
+        $trigger.Enabled = $true
+        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa381841(v=vs.85).aspx
+        $Action = $TaskDefinition.Actions.Create(0)
+        $action.Path = "$TaskCommand"
+        $action.Arguments = "$TaskArg"
+        #http://msdn.microsoft.com/en-us/library/windows/desktop/aa381365(v=vs.85).aspx
+        $rootFolder.RegisterTaskDefinition("$_TaskName",$TaskDefinition,6,"System",$null,5)
     }
 
     [bool] Test()
@@ -1014,7 +1014,7 @@ class SetAutomaticManagedPageFile
 {
     [DscProperty(key)]
     [string] $TaskName
-	
+    
     [DscProperty(Mandatory)]
     [bool] $Value
 
@@ -1056,7 +1056,7 @@ class ChangeServices
 {
     [DscProperty(key)]
     [string] $Name
-	
+    
     [DscProperty(Mandatory)]
     [StartupType] $StartupType
 
@@ -1128,9 +1128,9 @@ class AddUserToLocalAdminGroup
         $_Name = $this.Name
         $AdminGroupName = (Get-WmiObject -Class Win32_Group -Filter 'LocalAccount = True AND SID = "S-1-5-32-544"').Name
         $GroupObj = [ADSI]"WinNT://$env:COMPUTERNAME/$AdminGroupName"
-	    Write-Verbose "[$(Get-Date -format HH:mm:ss)] add $_Name to administrators group"
-	    $GroupObj.Add("WinNT://$_DomainName/$_Name")
-		
+        Write-Verbose "[$(Get-Date -format HH:mm:ss)] add $_Name to administrators group"
+        $GroupObj.Add("WinNT://$_DomainName/$_Name")
+        
     }
 
     [bool] Test()
@@ -1167,7 +1167,7 @@ class JoinDomain
         $_credential = $this.Credential
         $_DomainName = $this.DomainName
         Add-Computer -DomainName $_DomainName -Credential $_credential
-		$global:DSCMachineStatus = 1
+        $global:DSCMachineStatus = 1
     }
 
     [bool] Test()
@@ -1416,7 +1416,35 @@ class OpenFirewallPortForSCCM
             New-NetFirewallRule -DisplayName 'Remote Control(RPC Endpoint Mapper) Outbound' -Profile Domain -Direction Outbound -Action Allow -Protocol TCP -LocalPort 135 -Group "For SCCM Console"
             New-NetFirewallRule -DisplayName 'Remote Assistance(RDP AND RTC) Outbound' -Profile Domain -Direction Outbound -Action Allow -Protocol TCP -LocalPort 3389 -Group "For SCCM Console"
         }
+        if($_Role -contains "Client")
+        {
+            #Client Push Installation
+            Enable-NetFirewallRule -DisplayGroup "File and Printer Sharing"
+            Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -Direction Inbound
 
+            #Remote Assistance and Remote Desktop
+            New-NetFirewallRule -Program "C:\Windows\PCHealth\HelpCtr\Binaries\helpsvc.exe" -DisplayName "Remote Assistance - Helpsvc.exe" -Enabled True -Direction Outbound -Group "For SCCM Client"
+            New-NetFirewallRule -Program "C:\Windows\PCHealth\HelpCtr\Binaries\helpsvc.exe" -DisplayName "Remote Assistance - Helpsvc.exe" -Enabled True -Direction Inbound -Group "For SCCM Client"
+            New-NetFirewallRule -DisplayName 'CM Remote Assistance' -Profile Any -Direction Inbound -Action Allow -Protocol TCP -LocalPort 2701 -Group "For SCCM Client"
+
+            #Client Requests
+            New-NetFirewallRule -DisplayName 'HTTP(S) Outbound' -Profile Any -Direction Outbound -Action Allow -Protocol TCP -LocalPort @(80,443) -Group "For SCCM Client"
+
+            #Client Notification
+            New-NetFirewallRule -DisplayName 'CM Client Notification' -Profile Any -Direction Outbound -Action Allow -Protocol TCP -LocalPort 10123 -Group "For SCCM Client"
+
+            #Remote Control
+            New-NetFirewallRule -DisplayName 'CM Remote Control' -Profile Any -Direction Outbound -Action Allow -Protocol TCP -LocalPort 2701 -Group "For SCCM Client"
+
+            #Wake-Up Proxy
+            New-NetFirewallRule -DisplayName 'Wake-Up Proxy' -Profile Any -Direction Outbound -Action Allow -Protocol UDP -LocalPort (25536,9) -Group "For SCCM Client"
+
+            #SUP
+            New-NetFirewallRule -DisplayName 'CM Connect SUP' -Profile Any -Direction Outbound -Action Allow -Protocol TCP -LocalPort (8530,8531) -Group "For SCCM Client"
+        
+            #enable firewall public profile
+            Set-NetFirewallProfile -Profile Public -Enabled True
+        }
         $StatusPath = "$env:windir\temp\OpenFirewallStatus.txt"
         "Finished" >> $StatusPath
     }
@@ -1454,7 +1482,10 @@ class InstallFeatureForSCCM
         
         Write-Verbose "Current Role is : $_Role"
 
-        Install-WindowsFeature -Name "Rdc"
+        if($_Role -notcontains "Client")
+        {
+            Install-WindowsFeature -Name "Rdc"
+        }
 
         if($_Role -contains "DC")
         {
@@ -1735,6 +1766,52 @@ class FileReadAccessShare
     }
 
     [FileReadAccessShare] Get()
+    {
+        return $this
+    }
+    
+}
+
+[DscResource()]
+class InstallCA
+{
+    [DscProperty(Key)]
+    [string] $HashAlgorithm
+
+    [void] Set()
+    {
+        try
+        {
+            $_HashAlgorithm = $this.HashAlgorithm
+            Write-Verbose "Installing CA..."
+            #Install CA
+            Import-Module ServerManager
+            Add-WindowsFeature Adcs-Cert-Authority -IncludeManagementTools
+            Install-AdcsCertificationAuthority -CAType EnterpriseRootCa -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName $_HashAlgorithm -force
+
+            $StatusPath = "$env:windir\temp\InstallCAStatus.txt"
+            "Finished" >> $StatusPath
+
+            Write-Verbose "Finished installing CA."
+        }
+        catch
+        {
+            Write-Verbose "Failed to install CA."
+        }
+    }
+
+    [bool] Test()
+    {
+        $StatusPath = "$env:windir\temp\InstallCAStatus.txt"
+        if(Test-Path $StatusPath)
+        {
+            return $true
+        }
+
+        return $false
+    }
+
+    [InstallCA] Get()
     {
         return $this
     }
