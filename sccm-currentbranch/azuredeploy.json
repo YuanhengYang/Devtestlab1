@@ -62,7 +62,7 @@
     }
   },
   "variables": {
-    "dscScript": "dsc/DCConfiguration.zip",
+    "dscScript": "dsc/DCConfigurationCB.zip",
     "virtualNetworkName": "[concat(toLower(parameters('prefix')), '-vnet')]",
     "domainName": "contoso.com",
     "networkSettings": {
